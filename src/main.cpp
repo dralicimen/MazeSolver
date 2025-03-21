@@ -15,32 +15,33 @@ int randomSelectCommand() {
     Maze::Position right = mazeControl.getRight();
     Maze::Position left = mazeControl.getLeft();
 
-    int frontCell = !sensorControl.isObstacleFront() ? (101 - mazeControl.getCellValue(front.x, front.y)) : 0;
-    int rightCell = !sensorControl.isObstacleRight() ? (101 - mazeControl.getCellValue(right.x, right.y)) : 0;
-    int leftCell = !sensorControl.isObstacleLeft() ? (101 - mazeControl.getCellValue(left.x, left.y)) : 0;
+    int frontCell = !sensorControl.isObstacleFront() ? mazeControl.getCellValue(front.x, front.y) : 255;
+    int rightCell = !sensorControl.isObstacleRight() ? mazeControl.getCellValue(right.x, right.y) : 255;
+    int leftCell = !sensorControl.isObstacleLeft() ? mazeControl.getCellValue(left.x, left.y) : 255;
 
-    int frontWeight = (frontCell > 0) ? (101 - frontCell) * 50 : 0;
-    int rightWeight = (rightCell > 0) ? (101 - rightCell) * 15 : 0;
-    int leftWeight = (leftCell > 0) ? (101 - leftCell) * 15 : 0;
+    int frontWeight = (frontCell < 255) ? (100 - frontCell) * 50 : 0;
+    int rightWeight = (rightCell < 255) ? (100 - rightCell) * 15 : 0;
+    int leftWeight = (leftCell < 255) ? (100 - leftCell) * 15 : 0;
 
     int totalWeight = frontWeight + rightWeight + leftWeight;
+    if (totalWeight == 0) return 4; // hiçbir yön yoksa geri dön
+
     int randValue = random(0, totalWeight);
 
-    if (randValue < frontWeight) return 1;
-    else if (randValue < frontWeight + rightWeight) return 3;
-    else return 2;
+    if (randValue < frontWeight) return 1; // ileri
+    else if (randValue < frontWeight + rightWeight) return 3; // sağ
+    else return 2; // sol
 }
 
 // Hareket karar mekanizması
 int computeCommand() {
-    if (command != -1) return false;
     sensorControl.update();
 
     if (sensorControl.isObstacleFront()) {
-        if (!sensorControl.isObstacleLeft() && sensorControl.isObstacleRight()) return 1;
-        else if (sensorControl.isObstacleLeft() && !sensorControl.isObstacleRight()) return 3;
-        else if (sensorControl.isObstacleLeft() && sensorControl.isObstacleRight()) return 4;
-        else return randomSelectCommand();
+        if (!sensorControl.isObstacleLeft() && sensorControl.isObstacleRight()) return 2; // sola dön
+        else if (sensorControl.isObstacleLeft() && !sensorControl.isObstacleRight()) return 3; // sağa dön
+        else if (!sensorControl.isObstacleLeft() && !sensorControl.isObstacleRight()) return randomSelectCommand(); // iki yön de açık
+        else return 4; // çıkmaz, geri dön
     } else {
         return randomSelectCommand();
     }
@@ -49,18 +50,27 @@ int computeCommand() {
 // Hareketi uygula
 void useCommand(int command) {
     switch (command) {
-        case 1: motorControl.moveForward();
+        case 1:
+            motorControl.moveForward();
             break;
-        case 2: motorControl.turnLeft();
+        case 2:
+            motorControl.turnLeft();
+            mazeControl.setRobotState({mazeControl.getLeft(), (mazeControl.getRobotState().direction + 3) % 4});
             break;
-        case 3: motorControl.turnRight();
+        case 3:
+            motorControl.turnRight();
+            mazeControl.setRobotState({mazeControl.getRight(), (mazeControl.getRobotState().direction + 1) % 4});
             break;
-        case 4: motorControl.moveBackwards();
+        case 4:
+            motorControl.moveBackwards();
+            mazeControl.setRobotState({mazeControl.getBack(), (mazeControl.getRobotState().direction + 2) % 4});
             break;
-        default: motorControl.stopMotors();
+        default:
+            motorControl.stopMotors();
             break;
     }
     mazeControl.updatePosition();
+    mazeControl.printMaze(); // Durumu yazdır
 }
 
 // **SETUP FONKSİYONU**
@@ -69,16 +79,18 @@ void setup() {
     motorControl.initialize();
     sensorControl.initialize();
     mazeControl.initialize();
+    randomSeed(analogRead(0)); // Rastgelelik için
 }
 
 // **LOOP FONKSİYONU**
 void loop() {
-    sensorControl.update();
-    int cmd = computeCommand();
-    if (cmd != command) {
+    if (motorControl.isCommandCompleted()) {
+        int cmd = computeCommand();
         command = cmd;
         useCommand(command);
+        command = -1;
     }
+
     motorControl.updateMotorSpeed();
-    Serial.println(command);
+    delay(50); // Çok hızlı döngü olmaması için
 }

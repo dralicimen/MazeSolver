@@ -113,3 +113,4 @@ void Maze::setRobotState(const RobotState &state) {
 bool Maze::isValidPosition(Position pos) const {
     return (pos.x >= 0 && pos.x < width && pos.y >= 0 && pos.y < height);
 }
+

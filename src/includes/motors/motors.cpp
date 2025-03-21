@@ -24,7 +24,7 @@ long Motors::targetRight = 0;
 long Motors::stepLeft = 0;
 long Motors::stepRight = 0;
 int Motors::direction = 0;
-bool Motors::commandCompleted = false;
+bool Motors::commandCompleted = true;
 
 void Motors::initialize() {
     for (int i = 0; i < 2; i++) {
