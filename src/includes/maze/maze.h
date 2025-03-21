@@ -1,12 +1,10 @@
 #ifndef MAZE_H
 #define MAZE_H
-
+#include "globals.h"
 #include <Arduino.h>
 
 class Maze {
 public:
-    static const int width = 33;
-    static const int height = 33;
 
     struct Position {
         int x;
@@ -37,7 +35,7 @@ public:
     void setRobotState(const RobotState &state);
 
 private:
-    uint8_t maze[width][height];
+    uint8_t maze[MAZE_WIDTH][MAZE_HEIGHT];
     RobotState robot;
 
     int gX(int dir) const;

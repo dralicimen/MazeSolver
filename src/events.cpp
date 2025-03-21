@@ -34,7 +34,7 @@ void onUseCommand(int cmd) {
             motorControl.stopMotors();
         break;
     }
-
+    commandStartTime = millis();
     onMazeUpdated();
 }
 

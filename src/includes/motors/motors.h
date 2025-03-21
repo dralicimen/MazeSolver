@@ -6,6 +6,7 @@
 #include <EEPROM.h>
 #include "pidautotuner.h"
 #include <TimerOne.h>
+#include "globals.h"
 
 class Motors {
 public:

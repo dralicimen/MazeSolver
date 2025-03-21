@@ -1,20 +1,24 @@
 #include "maze.h"
+#include "globals.h"
 #include <Arduino.h>
 
 Maze::Maze() {
+
     initialize();
 }
 
+
 // Labirenti başlat
 void Maze::initialize() {
-    for (int i = 0; i < width; i++) {
-        for (int j = 0; j < height; j++) {
+
+    for (int i = 0; i < MAZE_WIDTH; i++) {
+        for (int j = 0; j < MAZE_HEIGHT; j++) {
             maze[i][j] = 100; // Varsayılan hücre değeri
         }
     }
     // Robotu başlangıç konumuna yerleştir
-    robot.pos.x = width / 2;
-    robot.pos.y = height / 2;
+    robot.pos.x = MAZE_WIDTH / 2;
+    robot.pos.y = MAZE_HEIGHT / 2;
     robot.direction = 0; // Yukarı bakıyor
     maze[robot.pos.x][robot.pos.y]--;
 }
@@ -37,8 +41,8 @@ void Maze::markDeadEnd() {
 // Labirenti seri porta yazdır
 void Maze::printMaze() {
     Serial.println("----- LABİRENT DURUMU -----");
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
+    for (int y = 0; y < MAZE_HEIGHT; y++) {
+        for (int x = 0; x < MAZE_WIDTH; x++) {
             if (x == robot.pos.x && y == robot.pos.y) {
                 Serial.print("[");
                 Serial.print(robot.direction);
@@ -111,6 +115,6 @@ void Maze::setRobotState(const RobotState &state) {
 
 // Pozisyonun geçerli olup olmadığını kontrol et
 bool Maze::isValidPosition(Position pos) const {
-    return (pos.x >= 0 && pos.x < width && pos.y >= 0 && pos.y < height);
+    return (pos.x >= 0 && pos.x < MAZE_WIDTH && pos.y >= 0 && pos.y < MAZE_HEIGHT);
 }
 

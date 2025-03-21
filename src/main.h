@@ -6,6 +6,12 @@
 #include "includes/sensors/sensors.h"
 #include "includes/maze/maze.h"
 
+// =======================
+// Zaman Aşımı Sabiti
+// =======================
+#define COMMAND_TIMEOUT_MS 10000
+// =======================
+extern unsigned long commandStartTime;
 /// @brief Motor kontrol nesnesi (global)
 extern Motors motorControl;
 

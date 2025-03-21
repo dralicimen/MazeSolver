@@ -1,11 +1,13 @@
+#include "globals.h"
 #include "motors.h"
 #include <EEPROM.h>
 #include "pidautotuner.h"
 #include <TimerOne.h>
 
-const int Motors::motorPins[2][2] = {{6, 5}, {10, 9}};
-Encoder Motors::knobLeft(3, 7);
-Encoder Motors::knobRight(2, 4);
+
+const int Motors::motorPins[2][2] = {{M1_IN1, M1_IN2}, {M2_IN1, M2_IN2}};
+Encoder Motors::knobLeft(ENC_LEFT_A, ENC_LEFT_B);
+Encoder Motors::knobRight(ENC_RIGHT_A, ENC_RIGHT_B);
 
 float Motors::KpLeft = 1, Motors::KiLeft = 0.001, Motors::KdLeft = 0.1;
 float Motors::KpRight = 1, Motors::KiRight = 0.001, Motors::KdRight = 0.1;

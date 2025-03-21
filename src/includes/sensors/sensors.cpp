@@ -1,12 +1,14 @@
+#include "globals.h"
+#include "main.h"
 #include "sensors.h"
 #include <Arduino.h>
 
 // Sensör pinleri tanımlamaları
-const int Sensors::sO1 = 11;
-const int Sensors::sO2 = 12;
-const int Sensors::sO3 = 8;
-const int Sensors::sG = 13;
-const int Sensors::lineSensor = A0;
+const int Sensors::sO1 = SENSOR_O1;
+const int Sensors::sO2 = SENSOR_O2;
+const int Sensors::sO3 = SENSOR_O3;
+const int Sensors::sG = SENSOR_GROUND;
+const int Sensors::lineSensor = SENSOR_LINE;
 
 // Sensör durum değişkenleri
 bool Sensors::oL = false;
