@@ -9,7 +9,10 @@ Sensors sensorControl;
 Maze mazeControl;
 int command = -1;
 
-// Rastgele komut belirleme
+/**
+ * @brief Rastgele bir yön seçimi yapar. Hücre değerlerine göre ağırlıklandırma uygulanır.
+ * @return Komut kodu: 1 (ileri), 2 (sol), 3 (sağ), 4 (geri)
+ */
 int randomSelectCommand() {
     Maze::Position front = mazeControl.getFront();
     Maze::Position right = mazeControl.getRight();
@@ -24,32 +27,37 @@ int randomSelectCommand() {
     int leftWeight = (leftCell < 255) ? (100 - leftCell) * 15 : 0;
 
     int totalWeight = frontWeight + rightWeight + leftWeight;
-    if (totalWeight == 0) return 4; // hiçbir yön yoksa geri dön
+    if (totalWeight == 0) return 4;
 
     int randValue = random(0, totalWeight);
-
-    if (randValue < frontWeight) return 1; // ileri
-    else if (randValue < frontWeight + rightWeight) return 3; // sağ
-    else return 2; // sol
+    if (randValue < frontWeight) return 1;
+    else if (randValue < frontWeight + rightWeight) return 3;
+    else return 2;
 }
 
-// Hareket karar mekanizması
-int computeCommand() {
+/**
+ * @brief Geçerli sensör verilerine göre bir hareket komutu hesaplar.
+ * @return Komut kodu: 1 (ileri), 2 (sol), 3 (sağ), 4 (geri)
+ */
+int onNewCommandComputed() {
     sensorControl.update();
 
     if (sensorControl.isObstacleFront()) {
-        if (!sensorControl.isObstacleLeft() && sensorControl.isObstacleRight()) return 2; // sola dön
-        else if (sensorControl.isObstacleLeft() && !sensorControl.isObstacleRight()) return 3; // sağa dön
-        else if (!sensorControl.isObstacleLeft() && !sensorControl.isObstacleRight()) return randomSelectCommand(); // iki yön de açık
-        else return 4; // çıkmaz, geri dön
+        if (!sensorControl.isObstacleLeft() && sensorControl.isObstacleRight()) return 2;
+        else if (sensorControl.isObstacleLeft() && !sensorControl.isObstacleRight()) return 3;
+        else if (!sensorControl.isObstacleLeft() && !sensorControl.isObstacleRight()) return randomSelectCommand();
+        else return 4;
     } else {
         return randomSelectCommand();
     }
 }
 
-// Hareketi uygula
-void useCommand(int command) {
-    switch (command) {
+/**
+ * @brief Verilen komutu uygular ve robot durumunu günceller.
+ * @param cmd Uygulanacak komut kodu
+ */
+void onUseCommand(int cmd) {
+    switch (cmd) {
         case 1:
             motorControl.moveForward();
             break;
@@ -69,40 +77,62 @@ void useCommand(int command) {
             motorControl.stopMotors();
             break;
     }
-    mazeControl.updatePosition();
-    mazeControl.printMaze(); // Durumu yazdır
+
+    onMazeUpdated();
 }
 
-// **SETUP FONKSİYONU**
+/**
+ * @brief Robot konumunu ve labirent bilgisini günceller.
+ */
+void onMazeUpdated() {
+    mazeControl.updatePosition();
+    mazeControl.printMaze();
+}
+
+/**
+ * @brief Hareket sırasında engel algılandığında çalışır, motorları durdurur.
+ */
+void onObstacleDetectedWhileMoving() {
+    motorControl.stopMotors();
+    Serial.println("ENGEL ALGILANDI! Hareket durduruldu.");
+    command = -1;
+}
+
+/**
+ * @brief Hareket tamamlandığında yeni komutu hesaplar ve uygular.
+ */
+void onCommandCompleted() {
+    command = onNewCommandComputed();
+    onUseCommand(command);
+    command = -1;
+}
+
+/**
+ * @brief Sistem başlatılırken çalıştırılan yapılandırma fonksiyonu.
+ */
 void setup() {
     Serial.begin(115200);
     motorControl.initialize();
     sensorControl.initialize();
     mazeControl.initialize();
-    randomSeed(analogRead(0)); // Rastgelelik için
+    randomSeed(analogRead(0));
 }
 
-// **LOOP FONKSİYONU**
+/**
+ * @brief Ana döngü fonksiyonu. Sürekli sensör ve motor durumunu kontrol eder, olayları tetikler.
+ */
 void loop() {
     sensorControl.update();
 
-    // Eğer ileri gidiyorsa ve önde engel algılanırsa dur
     if (!motorControl.isCommandCompleted() && sensorControl.isObstacleFront() && command == 1) {
-        motorControl.stopMotors();     // hareketi durdur
-        Serial.println("ENGEL ALGILANDI! Duruldu.");
-        command = -1;                  // komutu sıfırla
-        return;                        // bu döngüyü sonlandır
+        onObstacleDetectedWhileMoving();
+        return;
     }
 
-    // Eğer hareket tamamlandıysa yeni komut hesapla
     if (motorControl.isCommandCompleted()) {
-        int cmd = computeCommand();
-        command = cmd;
-        useCommand(command);
-        command = -1;
+        onCommandCompleted();
     }
 
     motorControl.updateMotorSpeed();
-    delay(10); // çok hızlı çalışmasın
+    delay(10);
 }
-
