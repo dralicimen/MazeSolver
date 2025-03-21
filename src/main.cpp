@@ -84,6 +84,17 @@ void setup() {
 
 // **LOOP FONKSİYONU**
 void loop() {
+    sensorControl.update();
+
+    // Eğer ileri gidiyorsa ve önde engel algılanırsa dur
+    if (!motorControl.isCommandCompleted() && sensorControl.isObstacleFront() && command == 1) {
+        motorControl.stopMotors();     // hareketi durdur
+        Serial.println("ENGEL ALGILANDI! Duruldu.");
+        command = -1;                  // komutu sıfırla
+        return;                        // bu döngüyü sonlandır
+    }
+
+    // Eğer hareket tamamlandıysa yeni komut hesapla
     if (motorControl.isCommandCompleted()) {
         int cmd = computeCommand();
         command = cmd;
@@ -92,5 +103,6 @@ void loop() {
     }
 
     motorControl.updateMotorSpeed();
-    delay(50); // Çok hızlı döngü olmaması için
+    delay(10); // çok hızlı çalışmasın
 }
+
