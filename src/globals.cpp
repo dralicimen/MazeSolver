@@ -21,8 +21,8 @@ const int ENC_RIGHT_A = 2;
 const int ENC_RIGHT_B = 4;
 
 // --- Engel ve çizgi sensör pinleri ---
-const int SENSOR_O1 = 11;
-const int SENSOR_O2 = 12;
+const int SENSOR_O1 = 12;
+const int SENSOR_O2 = 11;
 const int SENSOR_O3 = 8;
 const int SENSOR_GROUND = 13;
 const int SENSOR_LINE = A0;

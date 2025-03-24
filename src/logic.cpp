@@ -1,36 +1,71 @@
 #include "logic.h"
 
-int randomSelectCommand() {
+bool deadEnd = false;
+
+void printMazeValues(int front, int right, int left) {
+    Serial.println("--- Maze Cells ---");
+    Serial.print("     [ "); Serial.print(front); Serial.println(" ]");
+    Serial.print("[ "); Serial.print(left); Serial.print(" ]   [ "); Serial.print(right); Serial.println(" ]");
+    Serial.println("------------------");
+}
+
+int computeNewCommand() {
+    sensorControl.update();
+
+    bool frontObstacle = sensorControl.isObstacleFront();
+    bool leftObstacle = sensorControl.isObstacleLeft();
+    bool rightObstacle = sensorControl.isObstacleRight();
+
     Maze::Position front = mazeControl.getFront();
     Maze::Position right = mazeControl.getRight();
     Maze::Position left = mazeControl.getLeft();
 
-    int frontCell = !sensorControl.isObstacleFront() ? mazeControl.getCellValue(front.x, front.y) : 255;
-    int rightCell = !sensorControl.isObstacleRight() ? mazeControl.getCellValue(right.x, right.y) : 255;
-    int leftCell = !sensorControl.isObstacleLeft() ? mazeControl.getCellValue(left.x, left.y) : 255;
+    int frontCell = frontObstacle ? 255 : mazeControl.getCellValue(front.x, front.y);
+    int rightCell = rightObstacle ? 255 : mazeControl.getCellValue(right.x, right.y);
+    int leftCell = leftObstacle ? 255 : mazeControl.getCellValue(left.x, left.y);
 
-    int frontWeight = (frontCell < 255) ? (100 - frontCell) * 50 : 0;
-    int rightWeight = (rightCell < 255) ? (100 - rightCell) * 15 : 0;
-    int leftWeight = (leftCell < 255) ? (100 - leftCell) * 15 : 0;
+    Serial.println("--- Sensor States ---");
+    Serial.print("Front Obstacle: "); Serial.println(frontObstacle);
+    Serial.print("Left Obstacle: "); Serial.println(leftObstacle);
+    Serial.print("Right Obstacle: "); Serial.println(rightObstacle);
+
+    printMazeValues(frontCell, rightCell, leftCell);
+
+    if (frontObstacle && leftObstacle && rightObstacle) {
+        mazeControl.deadEnd = true;
+        return 4;
+    }
+
+    int frontWeight = (frontCell < 255) ? (101 - frontCell) * (mazeControl.deadEnd ? 5 : 50) : 0;
+    int rightWeight = (rightCell < 255) ? (101 - rightCell) * (mazeControl.deadEnd ? 50 : 15) : 0;
+    int leftWeight = (leftCell < 255) ? (101 - leftCell) * (mazeControl.deadEnd ? 50 : 15) : 0;
 
     int totalWeight = frontWeight + rightWeight + leftWeight;
-    if (totalWeight == 0) return 4;
 
-    int randValue = random(0, totalWeight);
-    if (randValue < frontWeight) return 1;
-    else if (randValue < frontWeight + rightWeight) return 3;
-    else return 2;
-}
+    Serial.print("Debug totalWeight: "); Serial.println(totalWeight);
 
-int onNewCommandComputed() {
-    sensorControl.update();
-
-    if (sensorControl.isObstacleFront()) {
-        if (!sensorControl.isObstacleLeft() && sensorControl.isObstacleRight()) return 2;
-        else if (sensorControl.isObstacleLeft() && !sensorControl.isObstacleRight()) return 3;
-        else if (!sensorControl.isObstacleLeft() && !sensorControl.isObstacleRight()) return randomSelectCommand();
-        else return 4;
-    } else {
-        return randomSelectCommand();
+    if (totalWeight == 0) {
+        mazeControl.deadEnd = true;
+        return 4;
     }
+
+    int randValue = random(totalWeight);
+
+    if (randValue < frontWeight && !frontObstacle) {
+        mazeControl.deadEnd = false;
+        return 1;
+    }
+    randValue -= frontWeight;
+    if (randValue < rightWeight && !rightObstacle) {
+        mazeControl.deadEnd = false;
+        return 3;
+    }
+    randValue -= rightWeight;
+    if (!leftObstacle) {
+        mazeControl.deadEnd = false;
+        return 2;
+    }
+
+    mazeControl.deadEnd = false;
+    return 4;
 }

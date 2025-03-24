@@ -2,21 +2,45 @@
 #include "logic.h"
 
 void onCommandCompleted() {
-    command = onNewCommandComputed();
-    onUseCommand(command);
+    command = computeNewCommand();
+    waitForButton();
+    Serial.println(command);
+    useCommand(command);
+
     command = -1;
+
 }
 
+void waitForButton() {
+    Serial.print(motorControl.getStepLeft());
+    Serial.print(" / ");
+    Serial.print(motorControl.getStepRight());
+    Serial.println("");
+    while (Serial.available() < 1)
+    {
+
+
+        delay(100);
+    }
+    while (Serial.available() > 0)
+    {
+        byte dummyread = Serial.read();
+    }
+
+
+}
 void onObstacleDetectedWhileMoving() {
     motorControl.stopMotors();
     Serial.println("ENGEL ALGILANDI! Hareket durduruldu.");
     command = -1;
 }
 
-void onUseCommand(int cmd) {
+void useCommand(int cmd) {
+    Serial.println(cmd);
     switch (cmd) {
         case 1:
             motorControl.moveForward();
+            updateMaze();
         break;
         case 2:
             motorControl.turnLeft();
@@ -27,7 +51,7 @@ void onUseCommand(int cmd) {
         mazeControl.setRobotState({mazeControl.getRight(), (mazeControl.getRobotState().direction + 1) % 4});
         break;
         case 4:
-            motorControl.moveBackwards();
+            motorControl.turnBack();
         mazeControl.setRobotState({mazeControl.getBack(), (mazeControl.getRobotState().direction + 2) % 4});
         break;
         default:
@@ -35,10 +59,13 @@ void onUseCommand(int cmd) {
         break;
     }
     commandStartTime = millis();
-    onMazeUpdated();
+
 }
 
-void onMazeUpdated() {
+void updateMaze() {
     mazeControl.updatePosition();
-    mazeControl.printMaze();
+    if (mazeControl.deadEnd==true) {
+        mazeControl.markDeadEnd();
+    }
+    //mazeControl.printMaze();
 }

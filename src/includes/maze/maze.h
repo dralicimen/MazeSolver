@@ -33,7 +33,7 @@ public:
 
     RobotState getRobotState() const;
     void setRobotState(const RobotState &state);
-
+    bool deadEnd;
 private:
     uint8_t maze[MAZE_WIDTH][MAZE_HEIGHT];
     RobotState robot;
@@ -41,6 +41,7 @@ private:
     int gX(int dir) const;
     int gY(int dir) const;
     bool isValidPosition(Position pos) const;
+
 };
 
 #endif // MAZE_H

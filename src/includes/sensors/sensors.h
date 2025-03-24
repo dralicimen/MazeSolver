@@ -10,11 +10,13 @@ public:
     static const int sO3;
     static const int sG;
     static const int lineSensor;
+    static const int button;
 
     static bool oL;
     static bool oR;
     static bool oF;
     static bool oG;
+    static bool sB;
 
     static void initialize();
     static void update();

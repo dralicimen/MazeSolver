@@ -4,20 +4,23 @@
 #include "logic.h"
 
 bool started = false; // Başlatma durumu
-
+int commands[4]={1,2,3,4};
+int i=1;
 void setup() {
     Serial.begin(115200);
     motorControl.initialize();
     sensorControl.initialize();
     mazeControl.initialize();
-    randomSeed(analogRead(0));
+    motorControl.stopMotors();
 
-    pinMode(START_BUTTON, INPUT_PULLUP); // A1 pini, buton bağlı ve ters lojik (LOW = basıldı)
+
 }
 
 void loop() {
+    sensorControl.update();
+
     if (!started) {
-        if (digitalRead(START_BUTTON) == LOW) {
+        if (sensorControl.sB==true) {
             started = true;
             Serial.println("Başlatma butonuna basıldı. Robot başlıyor...");
             delay(300); // debounce için
@@ -27,25 +30,14 @@ void loop() {
         }
     }
 
-    sensorControl.update();
 
-    if (!motorControl.isCommandCompleted() && sensorControl.isObstacleFront() && command == 1) {
-        onObstacleDetectedWhileMoving();
-        return;
-    }
-
-    if (!motorControl.isCommandCompleted() && command != -1) {
-        if (millis() - commandStartTime > COMMAND_TIMEOUT_MS) {
-            Serial.println("ZAMAN AŞIMI: Komut manuel olarak tamamlandı.");
-            onCommandCompleted();
-            return;
-        }
-    }
 
     if (motorControl.isCommandCompleted()) {
+        waitForButton();
         onCommandCompleted();
     }
 
     motorControl.updateMotorSpeed();
-    delay(10);
+
+
 }

@@ -21,6 +21,7 @@ void Maze::initialize() {
     robot.pos.y = MAZE_HEIGHT / 2;
     robot.direction = 0; // Yukarı bakıyor
     maze[robot.pos.x][robot.pos.y]--;
+    Maze::deadEnd = false;
 }
 
 // Robotun yeni pozisyonunu güncelle

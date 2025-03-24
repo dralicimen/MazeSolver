@@ -23,7 +23,7 @@ extern Maze mazeControl;
 
 /// @brief Mevcut aktif komut (1: ileri, 2: sol, 3: sağ, 4: geri)
 extern int command;
-
+extern bool deadEnd;
 /**
  * @brief Başlangıç yapılandırma fonksiyonu (Arduino setup).
  */
@@ -44,18 +44,18 @@ int randomSelectCommand();
  * @brief Geçerli sensör verilerine göre bir hareket komutu hesaplar.
  * @return Komut kodu
  */
-int onNewCommandComputed();
+int computeNewCommand();
 
 /**
  * @brief Verilen komutu uygular ve robotun yön / pozisyon durumunu günceller.
  * @param cmd Uygulanacak komut
  */
-void onUseCommand(int cmd);
+void useCommand(int cmd);
 
 /**
  * @brief Labirent bilgilerini günceller ve haritayı yazdırır.
  */
-void onMazeUpdated();
+void updateMaze();
 
 /**
  * @brief Hareket sırasında önde engel algılanırsa bu fonksiyon çağrılır.
@@ -66,5 +66,5 @@ void onObstacleDetectedWhileMoving();
  * @brief Motor hareketi tamamlandığında yeni bir komut üretilip uygulanır.
  */
 void onCommandCompleted();
-
+void waitForButton();
 #endif // MAIN_H

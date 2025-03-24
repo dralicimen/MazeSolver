@@ -9,12 +9,13 @@ const int Sensors::sO2 = SENSOR_O2;
 const int Sensors::sO3 = SENSOR_O3;
 const int Sensors::sG = SENSOR_GROUND;
 const int Sensors::lineSensor = SENSOR_LINE;
-
+const int Sensors::button = START_BUTTON;
 // Sensör durum değişkenleri
 bool Sensors::oL = false;
 bool Sensors::oR = false;
 bool Sensors::oF = false;
 bool Sensors::oG = false;
+bool Sensors::sB = false;
 
 void Sensors::initialize() {
     pinMode(sO1, INPUT);
@@ -22,6 +23,7 @@ void Sensors::initialize() {
     pinMode(sO3, INPUT);
     pinMode(sG, INPUT);
     pinMode(lineSensor, INPUT);
+    pinMode(button, INPUT);
 }
 
 void Sensors::update() {
@@ -29,6 +31,10 @@ void Sensors::update() {
     oL = !digitalRead(sO2);
     oR = !digitalRead(sO3);
     oG = (analogRead(lineSensor) < 100);
+    sB= digitalRead(button);
+
+
+
 }
 
 bool Sensors::isObstacleFront() {
