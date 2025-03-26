@@ -19,8 +19,7 @@ int Motors::minSpeed = 50;
 int Motors::maxSpeed = 150;
 const int Motors::defaultMaxSpeed = 150;
 const int Motors::turnSpeed = 100;
-//const int Motors::forwardStep = 2264;
-const int Motors::forwardStep = 100000;
+const int Motors::forwardStep = 2264;
 const int Motors::turnStep = 742;
 
 float Motors::leftCalib = 1;
