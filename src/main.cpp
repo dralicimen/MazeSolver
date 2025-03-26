@@ -13,7 +13,6 @@ void setup() {
     mazeControl.initialize();
     motorControl.stopMotors();
 
-
 }
 
 void loop() {
@@ -33,8 +32,9 @@ void loop() {
 
 
     if (motorControl.isCommandCompleted()) {
-        waitForButton();
+        delay(1000);
         onCommandCompleted();
+
     }
 
     motorControl.updateMotorSpeed();

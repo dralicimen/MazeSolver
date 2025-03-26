@@ -44,13 +44,15 @@ private:
     static float integralRight, lastErrorRight;
     static float outputLeft, outputRight;
 
-    static const int minSpeed;
-    static const int maxSpeed;
+    static  int minSpeed;
+    static  int maxSpeed;
+    static const int defaultMaxSpeed;
+    static const int turnSpeed;
     static const int forwardStep;
     static const int turnStep;
 
-    static int leftCalib;
-    static int rightCalib;
+    static float leftCalib;
+    static float rightCalib;
     static long targetLeft;
     static long targetRight;
     static long stepLeft;

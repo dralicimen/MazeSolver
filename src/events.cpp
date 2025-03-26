@@ -3,7 +3,6 @@
 
 void onCommandCompleted() {
     command = computeNewCommand();
-    waitForButton();
     Serial.println(command);
     useCommand(command);
 
@@ -12,10 +11,6 @@ void onCommandCompleted() {
 }
 
 void waitForButton() {
-    Serial.print(motorControl.getStepLeft());
-    Serial.print(" / ");
-    Serial.print(motorControl.getStepRight());
-    Serial.println("");
     while (Serial.available() < 1)
     {
 
