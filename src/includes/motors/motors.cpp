@@ -17,8 +17,8 @@ float Motors::integralRight = 0, Motors::lastErrorRight = 0;
 
 const int Motors::minSpeed = 50;
 const int Motors::maxSpeed = 150;
-const int Motors::forwardStep = 2631;
-const int Motors::turnStep = 701;
+const int Motors::forwardStep = 2264;
+const int Motors::turnStep = 742;
 
 int Motors::leftCalib = 0;
 int Motors::rightCalib = 0;
