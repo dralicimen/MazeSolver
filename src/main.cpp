@@ -12,7 +12,8 @@ void setup() {
     sensorControl.initialize();
     mazeControl.initialize();
     motorControl.stopMotors();
-
+    Serial.println("Starting up...");
+    started=true;
 }
 
 void loop() {

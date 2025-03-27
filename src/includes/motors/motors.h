@@ -21,6 +21,7 @@ public:
     static void stopRight();
     static void updateMotorSpeed();
     static void updateMotorSpeedISR();
+    static void sencron();
     static void setMotorTarget(long leftTarget, long rightTarget);
     static bool isCommandCompleted();
 
@@ -44,8 +45,8 @@ private:
     static float integralRight, lastErrorRight;
     static float outputLeft, outputRight;
 
-    static  int minSpeed;
-    static  int maxSpeed;
+    static int minSpeed;
+    static int maxSpeed;
     static const int defaultMaxSpeed;
     static const int turnSpeed;
     static const int forwardStep;
@@ -53,6 +54,12 @@ private:
 
     static float leftCalib;
     static float rightCalib;
+
+    // PID tabanlı kalibrasyon için yeni değişkenler
+    static float KpCalib, KiCalib, KdCalib;
+    static float leftCalibIntegral, leftCalibLastError;
+    static float rightCalibIntegral, rightCalibLastError;
+
     static long targetLeft;
     static long targetRight;
     static long stepLeft;
@@ -67,6 +74,9 @@ private:
     static bool commandCompleted;
     static bool commandLeftCompleted;
     static bool commandRightCompleted;
+
+    static unsigned long lastUpdateTime;
+    static float integralMax;
 };
 
 #endif // MOTORS_H

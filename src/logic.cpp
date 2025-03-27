@@ -17,7 +17,8 @@ int computeNewCommand() {
     bool rightObstacle = sensorControl.isObstacleRight();
     Serial.print(leftObstacle); Serial.print(" ");
     Serial.print(frontObstacle); Serial.print(" ");
-    Serial.print(rightObstacle); Serial.print("\n");
+    Serial.print(rightObstacle); Serial.print(" ");
+    Serial.print(sensorControl.oG); Serial.print("\n");
 
     Maze::Position front = mazeControl.getFront();
     Maze::Position right = mazeControl.getRight();

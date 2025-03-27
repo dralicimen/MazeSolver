@@ -4,9 +4,9 @@
 #include <Arduino.h>
 
 // Sensör pinleri tanımlamaları
-const int Sensors::sO1 = SENSOR_O1;
-const int Sensors::sO2 = SENSOR_O2;
-const int Sensors::sO3 = SENSOR_O3;
+const int Sensors::sO1 = SENSOR_L;
+const int Sensors::sO2 = SENSOR_F;
+const int Sensors::sO3 = SENSOR_R;
 const int Sensors::sG = SENSOR_GROUND;
 const int Sensors::lineSensor = SENSOR_LINE;
 const int Sensors::button = START_BUTTON;
@@ -27,10 +27,10 @@ void Sensors::initialize() {
 }
 
 void Sensors::update() {
-    oF = !digitalRead(sO1);
-    oL = !digitalRead(sO2);
+    oF = !digitalRead(sO2);
+    oL = !digitalRead(sO1);
     oR = !digitalRead(sO3);
-    oG = (analogRead(lineSensor) < 100);
+    oG = digitalRead(sG);
     sB= digitalRead(button);
 
 

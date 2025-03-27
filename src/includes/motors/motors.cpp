@@ -1,7 +1,6 @@
 #include "globals.h"
 #include "motors.h"
 #include <EEPROM.h>
-// #include <PID_v1.h> // Removed PID library, using custom PID
 #include <TimerOne.h>
 
 const int Motors::motorPins[2][2] = {{M1_IN1, M1_IN2}, {M2_IN1, M2_IN2}};
@@ -11,7 +10,6 @@ Encoder Motors::knobRight(ENC_RIGHT_A, ENC_RIGHT_B);
 float Motors::KpLeft = 2.5, Motors::KiLeft = 0.02, Motors::KdLeft = 0.1;
 float Motors::KpRight = 2.5, Motors::KiRight = 0.02, Motors::KdRight = 0.1;
 float Motors::outputLeft = 0, Motors::outputRight = 0;
-
 float Motors::integralLeft = 0, Motors::lastErrorLeft = 0;
 float Motors::integralRight = 0, Motors::lastErrorRight = 0;
 
@@ -22,14 +20,20 @@ const int Motors::turnSpeed = 100;
 const int Motors::forwardStep = 2264;
 const int Motors::turnStep = 742;
 
-float Motors::leftCalib = 1;
-float Motors::rightCalib = 1;
+float Motors::leftCalib = 0.80;
+float Motors::rightCalib = 1.20;
+float Motors::leftCalibIntegral = 0, Motors::leftCalibLastError = 0;
+float Motors::rightCalibIntegral = 0, Motors::rightCalibLastError = 0;
+float Motors::KpCalib = 0.001, Motors::KiCalib = 0.00001, Motors::KdCalib = 0.0001;
+
 long Motors::targetLeft = 0;
 long Motors::targetRight = 0;
 long Motors::stepLeft = 0;
 long Motors::stepRight = 0;
 unsigned long Motors::startTimeLeft = 0;
 unsigned long Motors::startTimeRight = 0;
+unsigned long Motors::lastUpdateTime = 0;
+float Motors::integralMax = 300.0;
 int Motors::direction = 0;
 bool Motors::commandCompleted = true;
 bool Motors::commandLeftCompleted = false;
@@ -41,29 +45,33 @@ long Motors::lastSampleStepLeft = 0;
 long Motors::lastSampleStepRight = 0;
 
 void Motors::initialize() {
-    commandCompleted = false;
-    commandLeftCompleted = false;
-    commandRightCompleted = false;
-    // pidLeft.SetMode(AUTOMATIC);
-// pidRight.SetMode(AUTOMATIC);
-// Removed due to custom PID implementation
+    // EEPROM'dan kalibrasyon ve PID parametrelerini al, yoksa öntanımlı kalsın
+    float temp;
+    EEPROM.get(0, temp);
+    if (!isnan(temp) && temp >= 0.5f && temp <= 1.5f) leftCalib = temp;
+    EEPROM.get(4, temp);
+    if (!isnan(temp) && temp >= 0.5f && temp <= 1.5f) rightCalib = temp;
+
+    EEPROM.get(8, temp);
+    if (!isnan(temp)) KpLeft = temp;
+    EEPROM.get(12, temp);
+    if (!isnan(temp)) KiLeft = temp;
+    EEPROM.get(16, temp);
+    if (!isnan(temp)) KdLeft = temp;
+    EEPROM.get(20, temp);
+    if (!isnan(temp)) KpRight = temp;
+    EEPROM.get(24, temp);
+    if (!isnan(temp)) KiRight = temp;
+    EEPROM.get(28, temp);
+    if (!isnan(temp)) KdRight = temp;
+
+    commandCompleted = commandLeftCompleted = commandRightCompleted = false;
     for (int i = 0; i < 2; i++) {
         pinMode(motorPins[i][0], OUTPUT);
         pinMode(motorPins[i][1], OUTPUT);
     }
-    //Timer1.initialize(10);
-    //Timer1.attachInterrupt(Motors::updateMotorSpeedISR);
-    //EEPROM.get(0, leftCalib);
-    //EEPROM.get(4, rightCalib);
-    EEPROM.get(8, KpLeft);
-    EEPROM.get(12, KiLeft);
-    EEPROM.get(16, KdLeft);
-    EEPROM.get(20, KpRight);
-    EEPROM.get(24, KiRight);
-    EEPROM.get(28, KdRight);
+    lastUpdateTime = millis();
 }
-
-
 
 void Motors::savePIDParameters() {
     EEPROM.put(8, KpLeft);
@@ -75,93 +83,88 @@ void Motors::savePIDParameters() {
 }
 
 void Motors::moveForward() {
-    Motors::maxSpeed =  Motors::defaultMaxSpeed;
+    maxSpeed = defaultMaxSpeed;
     setMotorTarget(forwardStep, forwardStep);
 }
 
 void Motors::moveBackwards() {
-    Motors::maxSpeed = Motors::turnSpeed;
+    maxSpeed = turnSpeed;
     setMotorTarget(-forwardStep, -forwardStep);
 }
 
 void Motors::turnLeft() {
-    Motors::maxSpeed = Motors::turnSpeed;
+    maxSpeed = turnSpeed;
     setMotorTarget(-turnStep, turnStep);
 }
 
 void Motors::turnRight() {
-    Motors::maxSpeed = Motors::turnSpeed;
+    maxSpeed = turnSpeed;
     setMotorTarget(turnStep, -turnStep);
 }
 
 void Motors::turnBack() {
-    setMotorTarget(turnStep*2, -turnStep*2);
+    setMotorTarget(turnStep * 2, -turnStep * 2);
 }
 
 void Motors::setMotorTarget(long leftTarget, long rightTarget) {
-    lastSampleTimeLeft = millis();
-    lastSampleTimeRight = millis();
-    lastSampleStepLeft = 0;
-    lastSampleStepRight = 0;
-    startTimeLeft = millis();
-    startTimeRight = millis();
+    lastSampleTimeLeft = lastSampleTimeRight = millis();
+    lastSampleStepLeft = lastSampleStepRight = 0;
+    startTimeLeft = startTimeRight = millis();
     knobLeft.write(0);
     knobRight.write(0);
-    stepLeft = 0;
-    stepRight = 0;
+    stepLeft = stepRight = 0;
     targetLeft = leftTarget;
     targetRight = rightTarget;
-    commandCompleted = false;
-    commandLeftCompleted = false;
-    commandRightCompleted = false;
+    commandCompleted = commandLeftCompleted = commandRightCompleted = false;
 }
 
 void Motors::stopMotors() {
-    Motors::stopRight();
-    Motors::stopLeft();
+    stopLeft();
+    stopRight();
 }
 
 void Motors::stopLeft() {
-    unsigned long durationLeft = millis() - startTimeLeft;
-
     analogWrite(motorPins[0][0], 0);
     analogWrite(motorPins[0][1], 0);
     knobLeft.write(0);
-    stepLeft = 0;
-    targetLeft = 0;
+    stepLeft = targetLeft = 0;
 }
-void Motors::stopRight() {
-    unsigned long durationRight = millis() - startTimeRight;
 
+void Motors::stopRight() {
     analogWrite(motorPins[1][0], 0);
     analogWrite(motorPins[1][1], 0);
     knobRight.write(0);
-    stepRight = 0;
-    targetRight = 0;
+    stepRight = targetRight = 0;
 }
+
 void Motors::updateMotorSpeedISR() {
-    Motors::updateMotorSpeed();
+    updateMotorSpeed();
 }
 
 void Motors::updateMotorSpeed() {
-    stepLeft = -knobLeft.read();
-    stepRight = knobRight.read();
+    stepLeft = knobLeft.read();
+    stepRight = -knobRight.read();
+
     calibrateMotors(stepLeft, stepRight);
+
+    unsigned long now = millis();
+    float dt = (now - lastUpdateTime) / 1000.0;
+    lastUpdateTime = now;
+    if (dt <= 0) dt = 0.001;
 
     bool leftDone = (targetLeft >= 0) ? (stepLeft >= targetLeft) : (stepLeft <= targetLeft);
     bool rightDone = (targetRight >= 0) ? (stepRight >= targetRight) : (stepRight <= targetRight);
 
     if (leftDone) {
-        commandLeftCompleted=true;
-        Motors::stopLeft();
-
-    }else {
+        commandLeftCompleted = true;
+        stopLeft();
+    } else {
         float errorLeft = abs(targetLeft) - abs(stepLeft);
-        integralLeft += errorLeft;
-        float derivativeLeft = errorLeft - lastErrorLeft;
+        integralLeft += errorLeft * dt;
+        integralLeft = constrain(integralLeft, -integralMax, integralMax);
+        float derivativeLeft = (errorLeft - lastErrorLeft) / dt;
         lastErrorLeft = errorLeft;
         outputLeft = KpLeft * errorLeft + KiLeft * integralLeft + KdLeft * derivativeLeft;
-        // Yöne göre motor pin kontrolü
         if (targetLeft >= 0) {
             analogWrite(motorPins[0][0], constrain(outputLeft * leftCalib, minSpeed, maxSpeed));
             analogWrite(motorPins[0][1], 0);
@@ -170,88 +173,76 @@ void Motors::updateMotorSpeed() {
             analogWrite(motorPins[0][1], constrain(outputLeft * leftCalib, minSpeed, maxSpeed));
         }
     }
-    if (rightDone){
-        commandRightCompleted=true;
-        Motors::stopRight();
-    }else{
+
+    if (rightDone) {
+        commandRightCompleted = true;
+        stopRight();
+    } else {
         float errorRight = abs(targetRight) - abs(stepRight);
-        integralRight += errorRight;
-        float derivativeRight = errorRight - lastErrorRight;
+        integralRight += errorRight * dt;
+        integralRight = constrain(integralRight, -integralMax, integralMax);
+        float derivativeRight = (errorRight - lastErrorRight) / dt;
         lastErrorRight = errorRight;
         outputRight = KpRight * errorRight + KiRight * integralRight + KdRight * derivativeRight;
         if (targetRight >= 0) {
-            analogWrite(motorPins[1][0], constrain(outputRight *rightCalib, minSpeed, maxSpeed));
+            analogWrite(motorPins[1][0], constrain(outputRight * rightCalib, minSpeed, maxSpeed));
             analogWrite(motorPins[1][1], 0);
         } else {
             analogWrite(motorPins[1][0], 0);
             analogWrite(motorPins[1][1], constrain(outputRight * rightCalib, minSpeed, maxSpeed));
         }
     }
+
     if (leftDone && rightDone) {
         commandCompleted = true;
         stopMotors();
         saveCalibration();
     }
 
-
-
     if (abs(stepLeft - lastSampleStepLeft) >= 10 && abs(stepRight - lastSampleStepRight) >= 10) {
-        unsigned long nowLeft = millis();
-        unsigned long elapsedLeft = nowLeft - lastSampleTimeLeft;
-        lastSampleTimeLeft = nowLeft;
+        lastSampleTimeLeft = now;
         lastSampleStepLeft = stepLeft;
-
-        unsigned long nowRight = millis();
-        unsigned long elapsedRight = nowRight - lastSampleTimeRight;
-        lastSampleTimeRight = nowRight;
+        lastSampleTimeRight = now;
         lastSampleStepRight = stepRight;
-
     }
-
-    // Sağ motor için ayrı kalibrasyon kaldırıldı – artık karşılaştırmalı yapılmakta
 }
 
 void Motors::calibrateMotors(long stepLeft, long stepRight) {
-    const float calibrationSensitivity = 0.005; // Hassasiyet, %0.5 gibi küçük bir adım
-
     if (stepLeft != 0 && stepRight != 0) {
-        float ratio = (float)stepLeft / (float)stepRight;
+        unsigned long now = millis();
+        float dt = (now - lastUpdateTime) / 1000.0;
+        if (dt <= 0) dt = 0.001;
 
-        if (abs(1.0f - ratio) > 0.02) { // %2'den büyük fark varsa küçük ayarlama yap
-            if (ratio > 1.0f) {
-                // Sağ motor daha yavaş, hızını artır
-                rightCalib *= (1.0f + calibrationSensitivity);
-                leftCalib *= (1.0f - calibrationSensitivity);
-            } else {
-                // Sol motor daha yavaş, hızını artır
-                leftCalib *= (1.0f + calibrationSensitivity);
-                rightCalib *= (1.0f - calibrationSensitivity);
-            }
-        }
+        float ratio = (float)stepLeft / (float)stepRight;
+        float error = 1.0f - ratio;
+
+        leftCalibIntegral += error * dt;
+        float derivative = (error - leftCalibLastError) / dt;
+        leftCalibLastError = error;
+
+        float output = KpCalib * error + KiCalib * leftCalibIntegral + KdCalib * derivative;
+
+        leftCalib = constrain(leftCalib + output, 0.8f, 1.2f);
+        rightCalib = constrain(rightCalib - output, 0.8f, 1.2f);
     }
 
-    // Kalibrasyon değerlerinin mantıklı sınırlar içinde kalmasını sağla
-    rightCalib = constrain(rightCalib, 0.8f, 1.2f);
-    leftCalib = constrain(leftCalib, 0.8f, 1.2f);
-
-    Serial.print("Left Calib: ");
-    Serial.print(leftCalib);
-    Serial.print(" StepLeft: ");
-    Serial.print(stepLeft);
-    Serial.print(" | Right Calib: ");
-    Serial.print(rightCalib);
-    Serial.print(" StepRight: ");
-    Serial.println(stepRight);
+    Serial.print("Left Calib: "); Serial.print(leftCalib);
+    Serial.print(" StepLeft: "); Serial.print(stepLeft);
+    Serial.print(" targetLeft: "); Serial.print(targetLeft);
+    Serial.print(" | Right Calib: "); Serial.print(rightCalib);
+    Serial.print(" StepRight: "); Serial.print(stepRight);
+    Serial.print(" targetRight: "); Serial.println(targetRight);
 }
-
-
 
 void Motors::saveCalibration() {
     EEPROM.put(0, leftCalib);
     EEPROM.put(4, rightCalib);
 }
 
-
+void Motors::sencron() {
+    maxSpeed = 255;
+    setMotorTarget(100000, 100000);
+}
 
 bool Motors::isCommandCompleted() {
     return commandCompleted;

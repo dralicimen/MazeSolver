@@ -17,11 +17,12 @@ extern const int ENC_LEFT_B;
 extern const int ENC_RIGHT_A;
 extern const int ENC_RIGHT_B;
 
-extern const int SENSOR_O1;
-extern const int SENSOR_O2;
-extern const int SENSOR_O3;
+extern const int SENSOR_L;
+extern const int SENSOR_F;
+extern const int SENSOR_R;
 extern const int SENSOR_GROUND;
 extern const int SENSOR_LINE;
+extern const bool debug;
 
 // Maze boyutları
 #define MAZE_WIDTH 10

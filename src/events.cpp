@@ -2,7 +2,12 @@
 #include "logic.h"
 
 void onCommandCompleted() {
-    command = computeNewCommand();
+    if (!debug) {
+        command = computeNewCommand();
+    }else {
+        command=5;
+    }
+
     Serial.println(command);
     useCommand(command);
 
@@ -48,6 +53,10 @@ void useCommand(int cmd) {
         case 4:
             motorControl.turnBack();
         mazeControl.setRobotState({mazeControl.getBack(), (mazeControl.getRobotState().direction + 2) % 4});
+        break;
+        case 5:
+            motorControl.sencron();
+            updateMaze();
         break;
         default:
             motorControl.stopMotors();
